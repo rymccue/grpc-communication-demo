@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package role;
+
+service Roles {
+    rpc GetRoles(EmptyRequest) returns(RolesReply) {}
+    rpc GetUserRole(GetUserRoleRequest) returns(UserRoleReply) {}
+}
+
+// Requests
+message EmptyRequest { }
+
+message GetUserRoleRequest {
+    int32 user_id = 1;
+}
+
+// Replys
+message RolesReply {
+    repeated Role roles = 1;
+}
+
+message Role {
+    int32 id = 2;
+    string name = 1;
+}
+
+message UserRoleReply {
+    int32 user_id = 1;
+    repeated Role roles = 2;
+}
