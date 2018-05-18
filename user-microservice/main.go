@@ -1,16 +1,17 @@
 package main
 
 import (
-	pb "github.com/rymccue/grpc-communication-demo/user-microservice/pb"
 	rolesPb "github.com/rymccue/grpc-communication-demo/roles-microservice/pb"
+	pb "github.com/rymccue/grpc-communication-demo/user-microservice/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"errors"
 )
 
 type Server struct {
-	users []*pb.User
+	users       []*pb.User
 	rolesClient rolesPb.RolesClient
 }
 
@@ -19,12 +20,16 @@ func getRolesClient() rolesPb.RolesClient {
 	if err != nil {
 		log.Fatalf("Failed to start gRPC connection: %v", err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 	return rolesPb.NewRolesClient(conn)
 }
 
 func (s *Server) GetUser(_ context.Context, req *pb.GetUserRequest) (*pb.UserReply, error) {
+	if req.UserId < 0 || req.UserId > int32(len(s.users)) {
+
+		return nil, errors.New("invalid user")
+	}
 	user := s.users[req.UserId]
 	roleReq := &rolesPb.GetUserRoleRequest{
 		UserId: req.UserId,
@@ -37,12 +42,12 @@ func (s *Server) GetUser(_ context.Context, req *pb.GetUserRequest) (*pb.UserRep
 	roles := make([]*pb.Role, 0)
 	for _, role := range rolesReply.Roles {
 		roles = append(roles, &pb.Role{
-			Id: role.Id,
+			Id:   role.Id,
 			Name: role.Name,
 		})
 	}
 	return &pb.UserReply{
-		User: user,
+		User:  user,
 		Roles: roles,
 	}, nil
 }
@@ -50,33 +55,33 @@ func (s *Server) GetUser(_ context.Context, req *pb.GetUserRequest) (*pb.UserRep
 func main() {
 	users := []*pb.User{
 		{
-			Id: 1,
+			Id:    1,
 			Email: "bob@example.com",
-			Name: "Bob",
+			Name:  "Bob",
 		},
 		{
-			Id: 2,
+			Id:    2,
 			Email: "amy@example.com",
-			Name: "Amy",
+			Name:  "Amy",
 		},
 		{
-			Id: 3,
+			Id:    3,
 			Email: "george@example.com",
-			Name: "George",
+			Name:  "George",
 		},
 		{
-			Id: 4,
+			Id:    4,
 			Email: "lily@msys.com",
-			Name: "Lily",
+			Name:  "Lily",
 		},
 		{
-			Id: 5,
+			Id:    5,
 			Email: "jacob@example.com",
-			Name: "Jacob",
+			Name:  "Jacob",
 		},
 	}
 
-	lis, err := net.Listen("tcp", "localhost:6000")
+	lis, err := net.Listen("tcp", "localhost:7000")
 	if err != nil {
 		log.Fatalf("failed to initializa TCP listen: %v", err)
 	}
@@ -84,11 +89,10 @@ func main() {
 
 	server := grpc.NewServer()
 	roleServer := &Server{
-		users: users,
+		users:       users,
 		rolesClient: getRolesClient(),
 	}
 	pb.RegisterUsersServer(server, roleServer)
 
 	server.Serve(lis)
 }
-
